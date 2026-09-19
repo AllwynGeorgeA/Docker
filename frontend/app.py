@@ -1,63 +1,44 @@
-import streamlit as st
+import os
 import requests
+import streamlit as st
 
 
-# Page configuration
 st.set_page_config(
     page_title="Basic GenAI App",
-    page_icon="🤖",
-    layout="centered"
+    page_icon="🤖"
 )
 
-
-# Title
 st.title("🤖 Basic GenAI App")
 
-st.write("Streamlit → FastAPI → OpenAI")
-
-
-# User input
 prompt = st.text_area(
     "Enter your prompt:",
     placeholder="Explain Generative AI in simple words..."
 )
 
 
-# Generate button
-if st.button("Generate", type="primary"):
+if st.button("Generate"):
 
     if not prompt.strip():
-
         st.warning("Please enter a prompt.")
+        st.stop()
 
-    else:
+    backend_url = os.getenv("BACKEND_URL")
 
-        try:
+    try:
+        response = requests.post(
+            f"{backend_url}/generate",
+            json={
+                "prompt": prompt
+            },
+            timeout=60
+        )
 
-            response = requests.post(
-                "http://backend:8000/generate",
-                json={
-                    "prompt": prompt
-                },
-                timeout=60
-            )
+        response.raise_for_status()
 
-            if response.status_code == 200:
+        result = response.json()
 
-                result = response.json()
+        st.subheader("AI Response")
+        st.write(result["answer"])
 
-                st.subheader("AI Response")
-
-                st.write(result["answer"])
-
-            else:
-
-                st.error(
-                    f"Backend error: {response.status_code}"
-                )
-
-        except requests.exceptions.RequestException as e:
-
-            st.error(
-                f"Could not connect to backend: {e}"
-            )
+    except requests.exceptions.RequestException as e:
+        st.error(f"Backend connection error: {e}")
